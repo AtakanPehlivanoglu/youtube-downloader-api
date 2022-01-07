@@ -1,0 +1,44 @@
+info:
+  contact: {}
+paths:
+  /audio:
+    get:
+      consumes:
+      - application/json
+      description: Download Audio from Youtube Url
+      parameters:
+      - description: Youtube url
+        in: query
+        name: m
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: Download Audio
+      tags:
+      - Media
+  /video:
+    get:
+      consumes:
+      - application/json
+      description: Download Video from Youtube Url
+      parameters:
+      - description: Youtube url
+        in: query
+        name: m
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: Download Video
+      tags:
+      - Media
+swagger: "2.0"
