@@ -37,7 +37,7 @@ func GetAudio(c *gin.Context){
 
 	bodyResponse := scraper.BodyResponse(contentLength, url, title)
 
-	if bodyResponse == nil{
+	if bodyResponse == nil || len(bodyResponse) != int(contentLength){
 		c.String(http.StatusBadRequest, "Error Getting Body Response")
 		return
 	}
@@ -81,7 +81,7 @@ func GetVideo(c *gin.Context){
 
 	bodyResponse := scraper.BodyResponse(contentLength, url, title)
 
-	if bodyResponse == nil{
+	if bodyResponse == nil || len(bodyResponse) != int(contentLength){
 		c.String(http.StatusBadRequest, "Error Getting Body Response")
 		return
 	}

@@ -10,19 +10,6 @@ import (
 	"time"
 )
 
-var client *http.Client
-
-func init() {
-	t := &http.Transport{
-		Dial: (&net.Dialer{
-			Timeout:   60 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).Dial,
-		TLSHandshakeTimeout: 60 * time.Second,
-	}
-	client = &http.Client{Transport: t}
-}
-
 func BodyResponse(contentLength int64, url string, title string) (bodyResponse []byte) {
 	var channels []<-chan []byte
 	var streamChannels []Stream
@@ -30,7 +17,7 @@ func BodyResponse(contentLength int64, url string, title string) (bodyResponse [
 
 	batchSize := 500000
 	byteRange := 0
-	param := byteRangeBuilder(0, int64(batchSize))
+		param := byteRangeBuilder(0, int64(batchSize))
 	div := contentLength / int64(batchSize)
 
 	for i := 0; int64(i) < div; i++ {
@@ -38,10 +25,15 @@ func BodyResponse(contentLength int64, url string, title string) (bodyResponse [
 		byteRange += batchSize
 		param = byteRangeBuilder(byteRange+1, int64(byteRange+batchSize))
 	}
-	ranges = append(ranges, byteRangeBuilder(byteRange+1, contentLength))
+
+	if contentLength < int64(batchSize) {
+		ranges = append(ranges, byteRangeBuilder(byteRange, contentLength))
+	}else{
+		ranges = append(ranges, byteRangeBuilder(byteRange+1, contentLength))
+	}
+	
 
 	log.Printf("Stream Batch size is : %v \n", len(ranges))
-
 	for _, r := range ranges {
 		channels = append(channels, streamData(r, url))
 	}
@@ -65,9 +57,19 @@ func BodyResponse(contentLength int64, url string, title string) (bodyResponse [
 func streamData(bytesRange string, url string) <-chan []byte {
 	chBody := make(chan []byte)
 	go func() {
+		t := &http.Transport{
+			Dial: (&net.Dialer{
+				Timeout:   60 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}).Dial,
+			TLSHandshakeTimeout: 90 * time.Second,
+		}
+		
+		client := &http.Client{Transport: t}
+
 		req, err := http.NewRequest("GET", url, nil)
 		if err != nil {
-			fmt.Printf("Erro Http New Request: \n" + err.Error())
+			log.Printf("Error Http New Request: \n" + err.Error())
 			close(chBody)
 			return
 		}
@@ -76,17 +78,18 @@ func streamData(bytesRange string, url string) <-chan []byte {
 		resp, err := client.Do(req)
 
 		if err != nil {
-			fmt.Printf("Error client request: \n" + err.Error())
+			log.Printf("Error client request: \n" + err.Error())
 			close(chBody)
 			return
 		}
 		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusPartialContent {
-			fmt.Printf("Error status code: %v \n", resp.StatusCode)
+			log.Printf("Error status code: %v \n", resp.StatusCode)
 			close(chBody)
 			return
 		}
+
 		bodyResponse, err := ioutil.ReadAll(resp.Body)
 		chBody <- bodyResponse
 	}()
